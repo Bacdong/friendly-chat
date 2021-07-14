@@ -21,34 +21,45 @@ class FriendlyChatApp extends StatelessWidget {
 
 class ChatMessage extends StatelessWidget {
   final String text;
-  const ChatMessage({ Key? key, required this.text }) : super(key: key);
-  // String _name = 'Your name';
+  final AnimationController animationController;
+
+  ChatMessage({ 
+    required this.text, 
+    required this.animationController 
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(child: Text(_name[0])),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _name,
-                style: Theme.of(context).textTheme.headline4,
-              ),
-              Container(
-                margin: EdgeInsets.only(top: 5.0),
-                child: Text(text),
-              ),
-            ],
-          ),
-        ],
+    return SizeTransition(
+      sizeFactor: CurvedAnimation(
+        parent: animationController, 
+        curve: Curves.easeOut,
+      ),
+      axisAlignment: 0.0,
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 10.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(right: 16.0),
+              child: CircleAvatar(child: Text(_name[0])),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _name,
+                  style: Theme.of(context).textTheme.headline4,
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 5.0),
+                  child: Text(text),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -60,7 +71,7 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final _textController = TextEditingController();
   final List<ChatMessage> _messages = [];
   final FocusNode _focusNode = FocusNode();
@@ -98,11 +109,26 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _handleSubmitted(String text) {
     _textController.clear();
-    ChatMessage message = ChatMessage(text: text);
+    ChatMessage message = ChatMessage(
+      text: text,
+      animationController: AnimationController(
+        duration: const Duration(milliseconds: 700),
+        vsync: this,
+      ),
+    );
     setState(() {
       _messages.insert(0, message);
     });
     _focusNode.requestFocus();
+    message.animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    for (var message in _messages) {
+      message.animationController.dispose();
+    }
+    super.dispose();
   }
 
   Widget _buildTextComposer() {
