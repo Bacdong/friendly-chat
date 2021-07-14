@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -6,6 +8,17 @@ void main() {
 
 String _name = 'I\'m Bacdongg.';
 
+final ThemeData kIOSTheme = ThemeData(
+  primarySwatch: Colors.orange,
+  primaryColor: Colors.grey[100],
+  primaryColorBrightness: Brightness.light,
+);
+
+final ThemeData kDefaultTheme = ThemeData(
+  primarySwatch: Colors.purple,
+  accentColor: Colors.orangeAccent[400],
+);
+
 class FriendlyChatApp extends StatelessWidget {
   const FriendlyChatApp({Key? key}) : super(key: key);
 
@@ -13,6 +26,9 @@ class FriendlyChatApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Friendly Chat',
+      theme: defaultTargetPlatform == TargetPlatform.iOS
+        ? kIOSTheme
+        : kDefaultTheme,
       home: ChatScreen(),
       debugShowCheckedModeBanner: false,
     );
@@ -39,24 +55,27 @@ class ChatMessage extends StatelessWidget {
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 10.0),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              margin: const EdgeInsets.only(right: 16.0),
-              child: CircleAvatar(child: Text(_name[0])),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _name,
+                    style: Theme.of(context).textTheme.headline6,
+                  ),
+                  Container(
+                    margin: EdgeInsets.only(top: 5.0),
+                    child: Text(text),
+                  ),
+                ],
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _name,
-                  style: Theme.of(context).textTheme.headline4,
-                ),
-                Container(
-                  margin: EdgeInsets.only(top: 5.0),
-                  child: Text(text),
-                ),
-              ],
+            Container(
+              margin: const EdgeInsets.only(left: 16.0),
+              child: CircleAvatar(child: Text(_name[0])),
             ),
           ],
         ),
@@ -75,6 +94,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   final _textController = TextEditingController();
   final List<ChatMessage> _messages = [];
   final FocusNode _focusNode = FocusNode();
+  bool _isComposing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -84,26 +104,35 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           'Friendly Chat',
           style: TextStyle(fontSize: 18, letterSpacing: 1),
         ),
+        elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
       ),
-      body: Column(
-        children: [
-          Flexible(
-            child: ListView.builder(
-              padding: EdgeInsets.all(8.0),
-              reverse: true,
-              itemBuilder: (_, int index) => _messages[index],
-              itemCount: _messages.length,              
+      body: Container(
+        child: Column(
+          children: [
+            Flexible(
+              child: ListView.builder(
+                padding: EdgeInsets.all(8.0),
+                reverse: true,
+                itemBuilder: (_, int index) => _messages[index],
+                itemCount: _messages.length,              
+              ),
             ),
-          ),
-          Divider(height: 1.0,),
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
+            Divider(height: 1.0,),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+              ),
+              child: _buildTextComposer(),
             ),
-            child: _buildTextComposer(),
-          ),
-        ],
-      ),
+          ],
+        ),
+        decoration: Theme.of(context).platform == TargetPlatform.iOS
+          ? BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Colors.grey[200]!),
+            ),
+          ) : null,
+      )
     );
   }
 
@@ -118,6 +147,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
     setState(() {
       _messages.insert(0, message);
+      _isComposing = false;
     });
     _focusNode.requestFocus();
     message.animationController.forward();
@@ -147,7 +177,12 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           Flexible(
             child: TextField(
               controller: _textController,
-              onSubmitted: _handleSubmitted,
+              onChanged: (String text) {
+                setState(() {
+                  _isComposing = text.isNotEmpty;
+                });
+              },
+              onSubmitted: _isComposing ? _handleSubmitted : null,
               decoration: InputDecoration.collapsed(
                 hintText: 'Send a message',
                 hintStyle: TextStyle(fontSize: 16, letterSpacing: 1),
@@ -157,9 +192,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           ),
           Container(
             margin: EdgeInsets.symmetric(horizontal: _spacing / 2),
-            child: IconButton(
+            child: Theme.of(context).platform == TargetPlatform.iOS ?
+            CupertinoButton(
+              child: Text('Send'), 
+              onPressed: _isComposing
+                ? () => _handleSubmitted(_textController.text)
+                : null,
+            ) : 
+            IconButton(
               icon: Icon(Icons.send),
-              onPressed: () => _handleSubmitted(_textController.text), 
+              onPressed: _isComposing
+                ? () => _handleSubmitted(_textController.text)
+                : null, 
             ),
           ),
         ],
